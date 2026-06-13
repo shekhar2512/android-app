@@ -11,20 +11,32 @@ export default defineConfig({
       manifest: {
         name: 'Thinkboard Notes App',
         short_name: 'Thinkboard',
-        description: 'Organize and keep track of your thoughts',
-        theme_color: '#FFA500', // The orange color for the phone's top status bar
-        background_color: '#1E1E1E', // Dark mode background
-        display: 'standalone', // This makes it run full-screen like a native app!
+        theme_color: '#FFA500', 
+        background_color: '#1E1E1E',
+        display: 'standalone', 
         icons: [
+          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' }
+        ]
+      },
+      // ADD THIS NEW WORKBOX SECTION:
+      workbox: {
+        runtimeCaching: [
           {
-            src: 'pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png'
+            // Tell it to intercept any requests going to your Render API
+            urlPattern: /^https:\/\/thinkbooardd\.onrender\.com\/api\/.*/i,
+            // Use the NetworkFirst strategy
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'thinkboard-api-cache',
+              expiration: {
+                maxEntries: 50, // Keep the last 50 requests
+                maxAgeSeconds: 60 * 60 * 24 * 7 // Keep them for 1 week
+              },
+              cacheableResponse: {
+                statuses: [0, 200] // Only cache successful responses
+              }
+            }
           }
         ]
       }

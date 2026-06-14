@@ -23,7 +23,7 @@ export default defineConfig({
             name: "Create New Note",
             short_name: "New Note",
             description: "Quickly write a new thought",
-            url: "/", // Where the app should open when they tap this
+            url: "/create", // Where the app should open when they tap this
             icons: [{ src: "pwa-192x192.png", sizes: "192x192" }]
           },
          // ADD THIS SECOND SHORTCUT HERE:

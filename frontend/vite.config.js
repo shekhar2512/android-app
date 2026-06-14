@@ -17,6 +17,15 @@ export default defineConfig({
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' }
+        ],
+        shortcuts: [
+          {
+            name: "Create New Note",
+            short_name: "New Note",
+            description: "Quickly write a new thought",
+            url: "/", // Where the app should open when they tap this
+            icons: [{ src: "pwa-192x192.png", sizes: "192x192" }]
+          }
         ]
       },
       // ADD THIS NEW WORKBOX SECTION:

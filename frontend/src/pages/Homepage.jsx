@@ -10,7 +10,6 @@ const Homepage = () => {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
 
-
   // Connect to the search input
   const searchInputRef = useRef(null);
 
@@ -21,7 +20,6 @@ const Homepage = () => {
       searchInputRef.current.focus();
     }
   }, []);
-
 
   // Fetch all notes from API
   const fetchNotes = async () => {
@@ -39,7 +37,6 @@ const Homepage = () => {
 
   useEffect(() => {
     fetchNotes();
-    
   }, [searchQuery]);
 
   // Delete a note
@@ -57,8 +54,6 @@ const Homepage = () => {
     }
   };
 
-  
-
   return (
     <div className="min-h-screen bg-base-100 pb-12">
       <Navbar />
@@ -74,7 +69,7 @@ const Homepage = () => {
               {notes.length} {notes.length === 1 ? "Note" : "Notes"}
             </div>
 
-                        {/* The new search box with the icon inside! */}
+            {/* The new search box with the icon inside! */}
             <label className="input input-sm input-bordered input-primary flex items-center gap-2">
               <Search className="size-4 opacity-70" />
               <input
@@ -112,8 +107,20 @@ const Homepage = () => {
             {notes.map((note) => (
               <div
                 key={note._id}
-                className="card bg-base-200 border border-base-content/10 shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300 group flex flex-col justify-between"
+                // Notice the 'overflow-hidden' I added here so the image respects the rounded corners of the card!
+                className="card bg-base-200 border border-base-content/10 shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300 group flex flex-col justify-between overflow-hidden"
               >
+
+                {/* NEW: Display the image perfectly at the top of the card if it exists */}
+                {note.image && (
+                  <figure className="w-full h-48 border-b border-base-content/10 bg-base-300">
+                    <img 
+                      src={note.image} 
+                      alt={note.title} 
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+                    />
+                  </figure>
+                )}
 
                 <div className="card-body p-6 relative">
                   <h3 className="card-title text-lg font-bold text-base-content group-hover:text-primary transition-colors line-clamp-1 pr-16">

@@ -2,15 +2,34 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../api";
 import toast from "react-hot-toast";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save ,Camera, X } from "lucide-react";
 import Navbar from "../components/Navbar";
 
 const CreatePage = () => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [createdBy, setCreatedBy] = useState("");
+  const [image, setImage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Image is too large! Please take a smaller photo.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImage(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,7 +41,7 @@ const CreatePage = () => {
 
     try {
       setIsSubmitting(true);
-      await api.post(`/notes`, { title, content, createdBy });
+      await api.post(`/notes`, { title, content, createdBy, image });
       toast.success("Note created successfully!");
       navigate("/");
     } catch (error) {
@@ -93,6 +112,34 @@ const CreatePage = () => {
                   className="input input-bordered w-full focus:outline-none focus:border-primary text-base-content"
                   required
                 />
+                </div>
+
+                              {/* Camera Input Section */}
+              <div className="form-control w-full border-t border-base-content/10 pt-4 mt-2">
+                <label className="label">
+                  <span className="label-text font-semibold text-base-content/75">Attach a Photo (Optional)</span>
+                </label>
+                
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleImageUpload}
+                  className="file-input file-input-bordered w-full text-base-content"
+                />
+
+                {image && (
+                  <div className="mt-4 relative rounded-lg overflow-hidden border border-base-content/20 shadow-sm">
+                    <img src={image} alt="Camera Preview" className="w-full max-h-64 object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setImage("")}
+                      className="btn btn-sm btn-error absolute top-2 right-2 gap-1 shadow-md"
+                    >
+                      <X className="size-4" /> Remove
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="card-actions justify-end pt-4 gap-3">

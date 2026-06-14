@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import api from "../api";
 import toast from "react-hot-toast";
@@ -9,6 +9,19 @@ const Homepage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
+
+
+  // Connect to the search input
+  const searchInputRef = useRef(null);
+
+  // Check the URL for the PWA Search Shortcut
+  useEffect(() => {
+    const queryParams = new URLSearchParams(window.location.search);
+    if (queryParams.get('action') === 'search' && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, []);
+
 
   // Fetch all notes from API
   const fetchNotes = async () => {
@@ -70,6 +83,7 @@ const Homepage = () => {
                 placeholder="Search createdby..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                ref={searchInputRef}
               />
             </label>
           </div>

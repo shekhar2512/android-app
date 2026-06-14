@@ -25,9 +25,18 @@ export default defineConfig({
             description: "Quickly write a new thought",
             url: "/", // Where the app should open when they tap this
             icons: [{ src: "pwa-192x192.png", sizes: "192x192" }]
+          },
+         // ADD THIS SECOND SHORTCUT HERE:
+          {
+            name: "Search Notes",
+            short_name: "Search",
+            description: "Find an existing note",
+            url: "/?action=search", 
+            icons: [{ src: "pwa-192x192.png", sizes: "192x192" }]
           }
         ]
       },
+      
       // ADD THIS NEW WORKBOX SECTION:
       workbox: {
         runtimeCaching: [

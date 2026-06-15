@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../api";
 import toast from "react-hot-toast";
-import { ArrowLeft, Save ,Camera, X } from "lucide-react";
+import { ArrowLeft, Save, Camera, X } from "lucide-react";
 import Navbar from "../components/Navbar";
+import localforage from "localforage"; // NEW: Import localforage!
 
 const CreatePage = () => {
   const [title, setTitle] = useState("");
@@ -12,7 +13,6 @@ const CreatePage = () => {
   const [image, setImage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -30,7 +30,6 @@ const CreatePage = () => {
     reader.readAsDataURL(file);
   };
 
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -39,9 +38,44 @@ const CreatePage = () => {
       return;
     }
 
+    const noteData = { title, content, createdBy, image };
+
+    // --- NEW: OFFLINE SAVE LOGIC ---
+    if (!navigator.onLine) {
+      try {
+        setIsSubmitting(true);
+        // Grab any existing offline notes from the hidden database
+        const existingOfflineNotes = await localforage.getItem('offline_notes') || [];
+        
+        // Add this new note to the queue
+        existingOfflineNotes.push({
+          ...noteData,
+          _id: "offline-" + Date.now(), // Give it a temporary ID
+          createdAt: new Date().toISOString()
+        });
+        
+        // Save it back to the hidden database
+        await localforage.setItem('offline_notes', existingOfflineNotes);
+        
+        toast.success("You are offline! Note saved locally and will sync when internet returns.", {
+          icon: '📶',
+          duration: 4000,
+        });
+        
+        navigate("/");
+      } catch (err) {
+        console.error("Failed to save offline:", err);
+        toast.error("Failed to save offline.");
+      } finally {
+        setIsSubmitting(false);
+      }
+      return; // Stop here so it doesn't try to use the API!
+    }
+    // ---------------------------------
+
     try {
       setIsSubmitting(true);
-      await api.post(`/notes`, { title, content, createdBy, image });
+      await api.post(`/notes`, noteData);
       toast.success("Note created successfully!");
       navigate("/");
     } catch (error) {
@@ -112,9 +146,9 @@ const CreatePage = () => {
                   className="input input-bordered w-full focus:outline-none focus:border-primary text-base-content"
                   required
                 />
-                </div>
+              </div>
 
-                              {/* Camera Input Section */}
+              {/* Camera Input Section */}
               <div className="form-control w-full border-t border-base-content/10 pt-4 mt-2">
                 <label className="label">
                   <span className="label-text font-semibold text-base-content/75">Attach a Photo (Optional)</span>

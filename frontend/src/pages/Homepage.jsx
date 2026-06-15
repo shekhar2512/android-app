@@ -2,31 +2,59 @@ import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import api from "../api";
 import toast from "react-hot-toast";
-import { Edit2, Trash2, Calendar, FileText, Search } from "lucide-react";
+import { Edit2, Trash2, Calendar, FileText, Search, WifiOff } from "lucide-react";
 import Navbar from "../components/Navbar";
+import localforage from "localforage"; // NEW: Import the hidden database
 
 const Homepage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
-  // Connect to the search input
   const searchInputRef = useRef(null);
 
-  // Check the URL for the PWA Search Shortcut
   useEffect(() => {
     const queryParams = new URLSearchParams(window.location.search);
     if (queryParams.get('action') === 'search' && searchInputRef.current) {
       searchInputRef.current.focus();
     }
+
+    // --- NEW: Watch for internet dropping or coming back! ---
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, []);
 
-  // Fetch all notes from API
+  // --- NEW: Fetching logic upgraded for offline capability ---
   const fetchNotes = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/notes?createdBy=${searchQuery}`);
-      setNotes(response.data);
+      let apiNotes = [];
+      
+      // 1. Try to get real notes from MongoDB if we are online
+      if (navigator.onLine) {
+        try {
+          const response = await api.get(`/notes?createdBy=${searchQuery}`);
+          apiNotes = response.data;
+        } catch (err) {
+          console.error("API failed, falling back to cache", err);
+          setIsOffline(true);
+        }
+      }
+
+      // 2. Grab any offline notes that are waiting to be synced
+      const offlineNotes = await localforage.getItem('offline_notes') || [];
+      
+      // 3. Combine them! Put offline notes at the top so the user sees them immediately.
+      setNotes([...offlineNotes, ...apiNotes]);
+
     } catch (error) {
       console.error("Error fetching notes:", error);
       toast.error("Failed to load notes");
@@ -37,16 +65,20 @@ const Homepage = () => {
 
   useEffect(() => {
     fetchNotes();
-  }, [searchQuery]);
+  }, [searchQuery, isOffline]); // Re-fetch automatically if internet drops!
 
-  // Delete a note
   const handleDelete = async (id) => {
+    // Prevent deleting offline notes since they don't exist in MongoDB yet
+    if (id.startsWith('offline-')) {
+      toast.error("Cannot delete an offline note until it syncs!");
+      return;
+    }
+
     if (!window.confirm("Are you sure you want to delete this note?")) return;
 
     try {
       await api.delete(`/notes/${id}`);
       toast.success("Note deleted successfully");
-      // Update state without refetching
       setNotes(notes.filter((note) => note._id !== id));
     } catch (error) {
       console.error("Error deleting note:", error);
@@ -62,14 +94,11 @@ const Homepage = () => {
         
         {/* FULLY RESPONSIVE HEADER */}
         <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-6 mb-8">
-          
-          {/* Left Side: Title */}
           <div>
             <h2 className="text-3xl font-bold text-base-content mb-1">My Thinkboard</h2>
             <p className="text-sm text-base-content/60">Organize and keep track of your thoughts</p>
           </div>
 
-          {/* Right Side: Badge & Search Bar */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto">
             <div className="badge badge-primary badge-outline font-semibold whitespace-nowrap">
               {notes.length} {notes.length === 1 ? "Note" : "Notes"}
@@ -87,7 +116,6 @@ const Homepage = () => {
               />
             </label>
           </div>
-
         </div>
 
         {loading ? (
@@ -113,10 +141,16 @@ const Homepage = () => {
             {notes.map((note) => (
               <div
                 key={note._id}
-                className="card bg-base-200 border border-base-content/10 shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300 group flex flex-col justify-between overflow-hidden"
+                className="card bg-base-200 border border-base-content/10 shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300 group flex flex-col justify-between overflow-hidden relative"
               >
 
-                {/* Display the image perfectly at the top of the card if it exists */}
+                {/* NEW: Warning Badge if the note is Offline */}
+                {note._id.startsWith('offline-') && (
+                  <div className="absolute top-4 left-4 badge badge-warning badge-sm font-bold shadow-md gap-1 z-10">
+                    <WifiOff className="size-3" /> Pending Sync
+                  </div>
+                )}
+
                 {note.image && (
                   <figure className="w-full h-48 border-b border-base-content/10 bg-base-300 shrink-0">
                     <img 
@@ -154,14 +188,14 @@ const Homepage = () => {
                   <div className="flex items-center gap-2">
                     <Link
                       to={`/notes/${note._id}`}
-                      className="btn btn-sm btn-ghost btn-circle text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors"
+                      className={`btn btn-sm btn-ghost btn-circle text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors ${note._id.startsWith('offline-') ? 'btn-disabled opacity-50' : ''}`}
                       title="Edit Note"
                     >
                       <Edit2 className="size-4" />
                     </Link>
                     <button
                       onClick={() => handleDelete(note._id)}
-                      className="btn btn-sm btn-ghost btn-circle text-base-content/70 hover:text-error hover:bg-error/10 transition-colors"
+                      className={`btn btn-sm btn-ghost btn-circle text-base-content/70 hover:text-error hover:bg-error/10 transition-colors ${note._id.startsWith('offline-') ? 'btn-disabled opacity-50' : ''}`}
                       title="Delete Note"
                     >
                       <Trash2 className="size-4" />

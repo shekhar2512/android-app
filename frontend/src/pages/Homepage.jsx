@@ -59,18 +59,23 @@ const Homepage = () => {
       <Navbar />
 
       <main className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-8">
+        
+        {/* FULLY RESPONSIVE HEADER */}
+        <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-6 mb-8">
+          
+          {/* Left Side: Title */}
           <div>
-            <h2 className="text-2xl font-bold text-base-content">My Thinkboard</h2>
+            <h2 className="text-3xl font-bold text-base-content mb-1">My Thinkboard</h2>
             <p className="text-sm text-base-content/60">Organize and keep track of your thoughts</p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="badge badge-primary badge-outline font-semibold">
+
+          {/* Right Side: Badge & Search Bar */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto">
+            <div className="badge badge-primary badge-outline font-semibold whitespace-nowrap">
               {notes.length} {notes.length === 1 ? "Note" : "Notes"}
             </div>
 
-            {/* The new search box with the icon inside! */}
-            <label className="input input-sm input-bordered input-primary flex items-center gap-2">
+            <label className="input input-sm input-bordered input-primary flex items-center gap-2 w-full sm:w-64">
               <Search className="size-4 opacity-70" />
               <input
                 type="text"
@@ -82,6 +87,7 @@ const Homepage = () => {
               />
             </label>
           </div>
+
         </div>
 
         {loading ? (
@@ -107,13 +113,12 @@ const Homepage = () => {
             {notes.map((note) => (
               <div
                 key={note._id}
-                // Notice the 'overflow-hidden' I added here so the image respects the rounded corners of the card!
                 className="card bg-base-200 border border-base-content/10 shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300 group flex flex-col justify-between overflow-hidden"
               >
 
-                {/* NEW: Display the image perfectly at the top of the card if it exists */}
+                {/* Display the image perfectly at the top of the card if it exists */}
                 {note.image && (
-                  <figure className="w-full h-48 border-b border-base-content/10 bg-base-300">
+                  <figure className="w-full h-48 border-b border-base-content/10 bg-base-300 shrink-0">
                     <img 
                       src={note.image} 
                       alt={note.title} 
@@ -122,7 +127,7 @@ const Homepage = () => {
                   </figure>
                 )}
 
-                <div className="card-body p-6 relative">
+                <div className="card-body p-6 relative flex-grow">
                   <h3 className="card-title text-lg font-bold text-base-content group-hover:text-primary transition-colors line-clamp-1 pr-16">
                     {note.title}
                   </h3>
@@ -134,7 +139,7 @@ const Homepage = () => {
                   </div>
                 </div>
 
-                <div className="px-6 py-4 bg-base-300/40 border-t border-base-content/5 rounded-b-2xl flex items-center justify-between mt-auto">
+                <div className="px-6 py-4 bg-base-300/40 border-t border-base-content/5 flex items-center justify-between mt-auto">
                   <div className="flex items-center gap-1.5 text-xs text-base-content/50 font-medium">
                     <Calendar className="size-3.5" />
                     <span>

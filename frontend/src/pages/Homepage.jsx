@@ -38,15 +38,12 @@ const Homepage = () => {
       setLoading(true);
       let apiNotes = [];
       
-      // 1. Try to get real notes from MongoDB if we are online
-      if (navigator.onLine) {
-        try {
-          const response = await api.get(`/notes?createdBy=${searchQuery}`);
-          apiNotes = response.data;
-        } catch (err) {
-          console.error("API failed, falling back to cache", err);
-          setIsOffline(true);
-        }
+          // 1. ALWAYS try to fetch! If offline, your Service Worker will magically return the cached data!
+      try {
+        const response = await api.get(`/notes?createdBy=${searchQuery}`);
+        apiNotes = response.data;
+      } catch (err) {
+        console.error("API failed, couldn't reach cache either", err);
       }
 
       // 2. Grab any offline notes that are waiting to be synced

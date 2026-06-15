@@ -47,12 +47,8 @@ const CreatePage = () => {
         // Grab any existing offline notes from the hidden database
         const existingOfflineNotes = await localforage.getItem('offline_notes') || [];
         
-        // Add this new note to the queue
-        existingOfflineNotes.push({
-          ...noteData,
-          _id: "offline-" + Date.now(), // Give it a temporary ID
-          createdAt: new Date().toISOString()
-        });
+                // Add this new note to the queue (NO FAKE ID!)
+        existingOfflineNotes.push(noteData);
         
         // Save it back to the hidden database
         await localforage.setItem('offline_notes', existingOfflineNotes);

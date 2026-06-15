@@ -49,11 +49,8 @@ const Homepage = () => {
         console.error("API failed, couldn't reach cache either", err);
       }
 
-      // 2. Grab any offline notes that are waiting to be synced
-      const offlineNotes = await localforage.getItem('offline_notes') || [];
-      
-      // 3. Combine them! Put offline notes at the top so the user sees them immediately.
-      setNotes([...offlineNotes, ...apiNotes]);
+            // 4. Set the notes to display! (We are no longer mixing in the pending offline notes)
+      setNotes(apiNotes);
 
     } catch (error) {
       console.error("Error fetching notes:", error);

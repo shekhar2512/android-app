@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import api from "../api";
 import toast from "react-hot-toast";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Camera, X } from "lucide-react";
 import Navbar from "../components/Navbar";
 
 const NoteDetailsPage = () => {
@@ -11,6 +11,7 @@ const NoteDetailsPage = () => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [createdBy, setCreatedBy] = useState("");
+  const [image, setImage] = useState(""); // NEW: Image state
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -23,6 +24,7 @@ const NoteDetailsPage = () => {
         setTitle(response.data.title);
         setContent(response.data.content);
         setCreatedBy(response.data.createdBy);
+        setImage(response.data.image || ""); // NEW: Grab the image from the database!
       } catch (error) {
         console.error("Error fetching note:", error);
         toast.error("Failed to load note details");
@@ -35,6 +37,23 @@ const NoteDetailsPage = () => {
     fetchNote();
   }, [id, navigate]);
 
+  // NEW: Function to process the camera photo
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Image is too large! Please take a smaller photo.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImage(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Update note handler
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -46,7 +65,8 @@ const NoteDetailsPage = () => {
 
     try {
       setIsSubmitting(true);
-      await api.put(`/notes/${id}`, { title, content, createdBy });
+      // NEW: Ensure 'image' is being sent in the PUT request
+      await api.put(`/notes/${id}`, { title, content, createdBy, image });
       toast.success("Note updated successfully!");
       navigate("/");
     } catch (error) {
@@ -78,7 +98,19 @@ const NoteDetailsPage = () => {
             <p className="text-base-content/60 font-medium animate-pulse">Loading note details...</p>
           </div>
         ) : (
-          <div className="card bg-base-200 border border-base-content/10 shadow-lg">
+          <div className="card bg-base-200 border border-base-content/10 shadow-lg overflow-hidden">
+            
+            {/* NEW: Display the existing image beautifully at the top if it exists! */}
+            {image && (
+              <figure className="w-full h-64 border-b border-base-content/10 bg-base-300">
+                <img 
+                  src={image} 
+                  alt={title} 
+                  className="w-full h-full object-cover" 
+                />
+              </figure>
+            )}
+
             <div className="card-body p-6 md:p-8">
               <h2 className="card-title text-2xl font-bold text-base-content mb-6">Edit Note</h2>
 
@@ -124,6 +156,33 @@ const NoteDetailsPage = () => {
                     maxLength={50}
                     required
                   />
+                </div>
+
+                {/* NEW: Camera Input Section for Editing */}
+                <div className="form-control w-full border-t border-base-content/10 pt-4 mt-2">
+                  <label className="label">
+                    <span className="label-text font-semibold text-base-content/75">Change Photo</span>
+                  </label>
+                  
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleImageUpload}
+                    className="file-input file-input-bordered w-full text-base-content"
+                  />
+
+                  {image && (
+                    <div className="mt-4 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setImage("")}
+                        className="btn btn-sm btn-error gap-1 shadow-md"
+                      >
+                        <X className="size-4" /> Remove Photo
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="card-actions justify-end pt-4 gap-3">

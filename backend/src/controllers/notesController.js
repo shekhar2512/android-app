@@ -34,14 +34,14 @@ export async function getNoteById(req, res) {
 // Create a new note
 export async function createNote(req, res) {
     try {
-        const { title, content, createdBy } = req.body;
+        const { title, content, createdBy, image } = req.body;
         console.log("Creating note with title:", title);
         console.log("Creating note with content:", content);
         console.log("Creating note with createdBy:", createdBy);
         if (!title || !content || !createdBy) {
             return res.status(400).json({ message: "Title, content, and createdBy are required" });
         }
-        const note = new Note({ title, content, createdBy });
+        const note = new Note({ title, content, createdBy, image });
         const savedNote = await note.save();
         res.status(201).json(savedNote);
     } catch (error) {
@@ -53,7 +53,7 @@ export async function createNote(req, res) {
 // Update an existing note
 export async function updateNote(req, res) {
     try {
-        const { title, content, createdBy } = req.body;
+        const { title, content, createdBy, image } = req.body;
         const note = await Note.findById(req.params.id);
         if (!note) {
             return res.status(404).json({ message: "Note not found" });
@@ -61,6 +61,7 @@ export async function updateNote(req, res) {
         if (title !== undefined) note.title = title;
         if (content !== undefined) note.content = content;
         if (createdBy !== undefined) note.createdBy = createdBy;
+        if (image !== undefined) note.image = image;
         const updatedNote = await note.save();
         res.status(200).json(updatedNote);
     } catch (error) {

@@ -22,8 +22,8 @@ const __dirname = path.resolve();
 
 // CORS middleware
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Trust proxy for rate limiter to work correctly behind Render
 app.set('trust proxy', 1);

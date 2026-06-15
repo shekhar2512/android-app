@@ -10,52 +10,59 @@ import NoteDetailsPage from './pages/NoteDetailsPage';
 
 const App = () => {
 
-  // --- NEW: THE AUTO-SYNC ENGINE ---
   useEffect(() => {
     const syncOfflineNotes = async () => {
       try {
-        // Check the local database for offline notes
         const offlineNotes = await localforage.getItem('offline_notes');
         
         if (offlineNotes && offlineNotes.length > 0) {
-          toast.loading(`Internet restored! Syncing ${offlineNotes.length} offline notes...`, { id: 'sync' });
+          toast.loading(`Stabilized! Syncing ${offlineNotes.length} offline notes...`, { id: 'sync' });
           
           let successCount = 0;
           for (const note of offlineNotes) {
             try {
-              // Push them to the real backend one by one
               await api.post('/notes', note);
               successCount++;
             } catch (err) {
+              // If it fails, print the exact error to the phone screen!
+              toast.error(`Sync Failed: ${err.message}`, { duration: 6000 });
               console.error("Failed to sync a note:", err);
             }
           }
           
-          // Clear the local database once they are safely in MongoDB
-          await localforage.removeItem('offline_notes');
-          toast.success(`Successfully synced ${successCount} notes to database!`, { id: 'sync' });
-          
-          // Automatically refresh the page to show the new synced notes!
-          setTimeout(() => window.location.reload(), 1500);
+          if (successCount > 0) {
+            // Only clear the database if they actually succeeded!
+            await localforage.removeItem('offline_notes');
+            toast.success(`Successfully synced ${successCount} notes!`, { id: 'sync' });
+            setTimeout(() => window.location.reload(), 1500);
+          } else {
+            toast.error("Failed to sync notes. Keeping them in the queue.", { id: 'sync' });
+          }
         }
       } catch (error) {
         console.error("Error during background sync:", error);
       }
     };
 
-    // Listen for the internet to come back online
-    window.addEventListener('online', syncOfflineNotes);
+    // The advanced Network Listener with a 3-second delay
+    const handleOnlineEvent = () => {
+      toast('Internet detected! Waiting 3 seconds to stabilize...', { icon: '⏳', duration: 3000 });
+      setTimeout(() => {
+        syncOfflineNotes();
+      }, 3000);
+    };
+
+    window.addEventListener('online', handleOnlineEvent);
     
-    // Also run it once when the app first loads, just in case
+    // Also run it on initial load (with a small delay to be safe)
     if (navigator.onLine) {
-      syncOfflineNotes();
+      setTimeout(syncOfflineNotes, 1000);
     }
 
     return () => {
-      window.removeEventListener('online', syncOfflineNotes);
+      window.removeEventListener('online', handleOnlineEvent);
     };
   }, []);
-  // ---------------------------------
 
   return (
     <div data-theme="halloween" className="min-h-screen bg-base-100 text-base-content">

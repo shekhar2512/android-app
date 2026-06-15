@@ -42,7 +42,10 @@ const Homepage = () => {
       try {
         const response = await api.get(`/notes?createdBy=${searchQuery}`);
         apiNotes = response.data;
+        await localforage.setItem('cached_api_notes', apiNotes); // Update cache with fresh data
       } catch (err) {
+        // 2. If API fails, try to get cached notes from localforage
+        apiNotes = await localforage.getItem('cached_api_notes') || [];
         console.error("API failed, couldn't reach cache either", err);
       }
 

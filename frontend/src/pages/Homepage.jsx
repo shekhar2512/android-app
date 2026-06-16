@@ -36,10 +36,9 @@ const Homepage = () => {
       setLoading(true);
       let apiNotes = [];
       
-    try {
+      try {
         const cacheBuster = Date.now();
-        const response = await api.get(`/notes?
-        createdBy=${searchQuery}&t=${cacheBuster}`);
+        const response = await api.get(`/notes?createdBy=${searchQuery}&t=${cacheBuster}`);
         apiNotes = response.data;
         await localforage.setItem('cached_api_notes', apiNotes);
       } catch (err) {
@@ -59,38 +58,6 @@ const Homepage = () => {
   useEffect(() => {
     fetchNotes();
   }, [searchQuery, isOffline]); 
-
-  // --- NEW MANUAL SYNC LOGIC ---
-  const handleForceSync = async () => {
-    try {
-      const offlineNotes = await localforage.getItem('offline_notes');
-      if (!offlineNotes || offlineNotes.length === 0) {
-        toast.error("No offline notes found in queue!", { duration: 3000 });
-        return;
-      }
-
-      toast.loading(`Syncing ${offlineNotes.length} notes...`, { id: 'manualSync' });
-      let successCount = 0;
-      
-      for (const note of offlineNotes) {
-        try {
-          await api.post('/notes', note);
-          successCount++;
-        } catch (err) {
-          toast.error(`Upload Failed: ${err.message}`, { id: 'manualSync', duration: 8000 });
-          return; 
-        }
-      }
-
-      if (successCount > 0) {
-        await localforage.removeItem('offline_notes');
-        toast.success(`Success! Synced ${successCount} notes!`, { id: 'manualSync' });
-        setTimeout(() => window.location.reload(), 1500);
-      }
-    } catch (err) {
-      toast.error(`Database Error: ${err.message}`, { id: 'manualSync' });
-    }
-  };
 
   const handleDelete = async (id) => {
     if (id.startsWith('offline-')) {
@@ -123,11 +90,6 @@ const Homepage = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto">
-            
-            {/* FORCE SYNC BUTTON */}
-            <button onClick={handleForceSync} className="btn btn-sm btn-secondary shadow-md">
-              Force Sync
-            </button>
 
             <div className="badge badge-primary badge-outline font-semibold whitespace-nowrap">
               {notes.length} {notes.length === 1 ? "Note" : "Notes"}

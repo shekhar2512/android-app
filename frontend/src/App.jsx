@@ -12,6 +12,11 @@ import NoteDetailsPage from './pages/NoteDetailsPage';
 const App = () => {
 
   useEffect(() => {
+    // 1. ASK FOR PERMISSION TO SEND NOTIFICATIONS
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+
     const syncOfflineNotes = async () => {
       try {
         const offlineNotes = await localforage.getItem('offline_notes');
@@ -33,6 +38,20 @@ const App = () => {
           if (successCount > 0) {
             await localforage.removeItem('offline_notes');
             toast.success(`Successfully synced ${successCount} notes!`, { id: 'sync' });
+
+            // 2. TRIGGER THE NATIVE PHONE NOTIFICATION AND VIBRATION!
+            if ("Notification" in window && Notification.permission === "granted") {
+              if ("serviceWorker" in navigator) {
+                // This is the bulletproof PWA way to trigger Android/iOS notifications
+                navigator.serviceWorker.ready.then(registration => {
+                  registration.showNotification("Thinkboard Synced! 🚀", {
+                    body: `Successfully backed up ${successCount} offline notes to your database.`,
+                    vibrate: [200, 100, 200, 100, 200], // Makes the phone buzz twice!
+                  });
+                });
+              }
+            }
+
             setTimeout(() => window.location.reload(), 1500);
           } else {
             toast.error("Failed to sync notes. Keeping them in the queue.", { id: 'sync' });
@@ -43,7 +62,6 @@ const App = () => {
       }
     };
 
-    // The advanced Network Listener with a 3-second delay
     const handleOnlineEvent = () => {
       toast('Internet detected! Waiting 3 seconds to stabilize...', { icon: '⏳', duration: 3000 });
       setTimeout(() => {
@@ -53,7 +71,6 @@ const App = () => {
 
     window.addEventListener('online', handleOnlineEvent);
     
-    // Also run it on initial load (with a small delay to be safe)
     if (navigator.onLine) {
       setTimeout(syncOfflineNotes, 1000);
     }

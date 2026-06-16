@@ -9,7 +9,7 @@ export async function getAllNotes(req, res) {
             console.log("Backend received search for: ", req.query.createdBy);
             filter.createdBy = { $regex: req.query.createdBy, $options: "i" };
         }
-        const notes = await Note.find(filter).sort({ createdAt: -1 });
+        const notes = await Note.find(filter);
         res.status(200).json(notes);
     } catch (error) {
         console.error("Error in getAllNotes controller:", error);

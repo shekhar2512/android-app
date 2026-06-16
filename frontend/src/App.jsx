@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import localforage from 'localforage';
 import api from './api';
 
@@ -24,14 +25,12 @@ const App = () => {
               await api.post('/notes', note);
               successCount++;
             } catch (err) {
-              // If it fails, print the exact error to the phone screen!
               toast.error(`Sync Failed: ${err.message}`, { duration: 6000 });
               console.error("Failed to sync a note:", err);
             }
           }
           
           if (successCount > 0) {
-            // Only clear the database if they actually succeeded!
             await localforage.removeItem('offline_notes');
             toast.success(`Successfully synced ${successCount} notes!`, { id: 'sync' });
             setTimeout(() => window.location.reload(), 1500);

@@ -36,8 +36,10 @@ const Homepage = () => {
       setLoading(true);
       let apiNotes = [];
       
-      try {
-        const response = await api.get(`/notes?createdBy=${searchQuery}`);
+    try {
+        const cacheBuster = Date.now();
+        const response = await api.get(`/notes?
+        createdBy=${searchQuery}&t=${cacheBuster}`);
         apiNotes = response.data;
         await localforage.setItem('cached_api_notes', apiNotes);
       } catch (err) {

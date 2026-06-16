@@ -47,7 +47,7 @@ const Homepage = () => {
         apiNotes = await localforage.getItem('cached_api_notes') || [];
       }
 
-      setNotes(apiNotes);
+      setNotes(apiNotes.reverse());
 
     } catch (error) {
       console.error("Error fetching notes:", error);

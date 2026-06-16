@@ -64,10 +64,10 @@ const App = () => {
     };
 
     const handleOnlineEvent = () => {
-      toast('Internet detected! Waiting 3 seconds to stabilize...', { icon: '⏳', duration: 3000 });
+      toast('Internet detected! Waiting 3 seconds to stabilize...', { icon: '⏳', duration: 8000 });
       setTimeout(() => {
         syncOfflineNotes();
-      }, 3000);
+      }, 8000);
     };
 
     window.addEventListener('online', handleOnlineEvent);

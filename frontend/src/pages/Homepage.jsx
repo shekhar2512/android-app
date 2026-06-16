@@ -31,25 +31,36 @@ const Homepage = () => {
     };
   }, []);
 
-  const fetchNotes = async () => {
+    const fetchNotes = async () => {
     try {
       setLoading(true);
       let apiNotes = [];
       
       try {
         const cacheBuster = Date.now();
-        const response = await api.get(`/notes?createdBy=${searchQuery}&t=${cacheBuster}`);
-        apiNotes = response.data;
-        await localforage.setItem('cached_api_notes', apiNotes);
+        // ADDED A STRICT 5-SECOND TIMEOUT!
+        const response = await api.get(`/notes?createdBy=${searchQuery}&t=${cacheBuster}`, { 
+          timeout: 60000 // If server is frozen, cancel after 5 seconds!
+        });
+        
+        // Ensure the backend actually gave us an array
+        if (Array.isArray(response.data)) {
+          apiNotes = response.data;
+          await localforage.setItem('cached_api_notes', apiNotes);
+        } else {
+          throw new Error("Backend is broken, falling back to cache.");
+        }
       } catch (err) {
-        console.error("API failed, internet is down!");
-        apiNotes = await localforage.getItem('cached_api_notes') || [];
+        console.error("Server is frozen or offline! Loading cache...");
+        const cached = await localforage.getItem('cached_api_notes');
+        apiNotes = Array.isArray(cached) ? cached : [];
       }
 
-      setNotes(apiNotes.reverse());
+      // Safely reverse the array
+      setNotes([...apiNotes].reverse());
 
     } catch (error) {
-      console.error("Error fetching notes:", error);
+      console.error("Critical error fetching notes:", error);
     } finally {
       setLoading(false);
     }

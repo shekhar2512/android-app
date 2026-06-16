@@ -18,14 +18,35 @@ const CreatePage = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (file.size > 8 * 1024 * 1024) {
-      toast.error("Image is too large! Please take a smaller photo.");
-      return;
-    }
-
     const reader = new FileReader();
     reader.onloadend = () => {
-      setImage(reader.result);
+      // Create a temporary image object to read the massive photo
+      const img = new Image();
+      img.onload = () => {
+        // We will shrink it so the max width is 800px
+        const MAX_WIDTH = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > MAX_WIDTH) {
+          height = Math.round((height * MAX_WIDTH) / width);
+          width = MAX_WIDTH;
+        }
+
+        // Draw the massive photo onto a tiny hidden canvas
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Convert the canvas back into a tiny 50KB JPEG image! 
+        // 0.6 is the quality scale (60% quality is perfect for mobile)
+        const compressedBase64 = canvas.toDataURL("image/jpeg", 0.6);
+        
+        setImage(compressedBase64);
+      };
+      img.src = reader.result;
     };
     reader.readAsDataURL(file);
   };

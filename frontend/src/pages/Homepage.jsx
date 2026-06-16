@@ -4,7 +4,7 @@ import api from "../api";
 import toast from "react-hot-toast";
 import { Edit2, Trash2, Calendar, FileText, Search, WifiOff } from "lucide-react";
 import Navbar from "../components/Navbar";
-import localforage from "localforage"; // NEW: Import the hidden database
+import localforage from "localforage"; 
 
 const Homepage = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -20,7 +20,6 @@ const Homepage = () => {
       searchInputRef.current.focus();
     }
 
-    // --- NEW: Watch for internet dropping or coming back! ---
     const handleOnline = () => setIsOffline(false);
     const handleOffline = () => setIsOffline(true);
     window.addEventListener('online', handleOnline);
@@ -32,29 +31,24 @@ const Homepage = () => {
     };
   }, []);
 
-  // --- NEW: Fetching logic upgraded for offline capability ---
   const fetchNotes = async () => {
     try {
       setLoading(true);
       let apiNotes = [];
       
-          // 1. ALWAYS try to fetch! If offline, your Service Worker will magically return the cached data!
       try {
         const response = await api.get(`/notes?createdBy=${searchQuery}`);
         apiNotes = response.data;
-        await localforage.setItem('cached_api_notes', apiNotes); // Update cache with fresh data
+        await localforage.setItem('cached_api_notes', apiNotes);
       } catch (err) {
-        // 2. If API fails, try to get cached notes from localforage
+        console.error("API failed, internet is down!");
         apiNotes = await localforage.getItem('cached_api_notes') || [];
-        console.error("API failed, couldn't reach cache either", err);
       }
 
-            // 4. Set the notes to display! (We are no longer mixing in the pending offline notes)
       setNotes(apiNotes);
 
     } catch (error) {
       console.error("Error fetching notes:", error);
-      toast.error("Failed to load notes");
     } finally {
       setLoading(false);
     }
@@ -62,10 +56,41 @@ const Homepage = () => {
 
   useEffect(() => {
     fetchNotes();
-  }, [searchQuery, isOffline]); // Re-fetch automatically if internet drops!
+  }, [searchQuery, isOffline]); 
+
+  // --- NEW MANUAL SYNC LOGIC ---
+  const handleForceSync = async () => {
+    try {
+      const offlineNotes = await localforage.getItem('offline_notes');
+      if (!offlineNotes || offlineNotes.length === 0) {
+        toast.error("No offline notes found in queue!", { duration: 3000 });
+        return;
+      }
+
+      toast.loading(`Syncing ${offlineNotes.length} notes...`, { id: 'manualSync' });
+      let successCount = 0;
+      
+      for (const note of offlineNotes) {
+        try {
+          await api.post('/notes', note);
+          successCount++;
+        } catch (err) {
+          toast.error(`Upload Failed: ${err.message}`, { id: 'manualSync', duration: 8000 });
+          return; 
+        }
+      }
+
+      if (successCount > 0) {
+        await localforage.removeItem('offline_notes');
+        toast.success(`Success! Synced ${successCount} notes!`, { id: 'manualSync' });
+        setTimeout(() => window.location.reload(), 1500);
+      }
+    } catch (err) {
+      toast.error(`Database Error: ${err.message}`, { id: 'manualSync' });
+    }
+  };
 
   const handleDelete = async (id) => {
-    // Prevent deleting offline notes since they don't exist in MongoDB yet
     if (id.startsWith('offline-')) {
       toast.error("Cannot delete an offline note until it syncs!");
       return;
@@ -89,7 +114,6 @@ const Homepage = () => {
 
       <main className="max-w-6xl mx-auto px-4 py-8">
         
-        {/* FULLY RESPONSIVE HEADER */}
         <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-6 mb-8">
           <div>
             <h2 className="text-3xl font-bold text-base-content mb-1">My Thinkboard</h2>
@@ -97,6 +121,12 @@ const Homepage = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto">
+            
+            {/* FORCE SYNC BUTTON */}
+            <button onClick={handleForceSync} className="btn btn-sm btn-secondary shadow-md">
+              Force Sync
+            </button>
+
             <div className="badge badge-primary badge-outline font-semibold whitespace-nowrap">
               {notes.length} {notes.length === 1 ? "Note" : "Notes"}
             </div>
@@ -141,7 +171,6 @@ const Homepage = () => {
                 className="card bg-base-200 border border-base-content/10 shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300 group flex flex-col justify-between overflow-hidden relative"
               >
 
-                {/* NEW: Warning Badge if the note is Offline */}
                 {note._id.startsWith('offline-') && (
                   <div className="absolute top-4 left-4 badge badge-warning badge-sm font-bold shadow-md gap-1 z-10">
                     <WifiOff className="size-3" /> Pending Sync

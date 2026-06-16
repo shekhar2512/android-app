@@ -57,6 +57,9 @@ const Homepage = () => {
 
   useEffect(() => {
     fetchNotes();
+        // NEW: Listen for the silent signal from App.jsx and magically refresh the data!
+    window.addEventListener('forceFetchNotes', fetchNotes);
+    return () => window.removeEventListener('forceFetchNotes', fetchNotes);
   }, [searchQuery, isOffline]); 
 
   const handleDelete = async (id) => {

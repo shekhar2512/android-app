@@ -52,7 +52,8 @@ const App = () => {
               }
             }
 
-            setTimeout(() => window.location.reload(), 1500);
+                        // INSTEAD OF RELOADING THE PAGE, WE SEND A SILENT SIGNAL
+            setTimeout(() => window.dispatchEvent(new Event('forceFetchNotes')), 1500);
           } else {
             toast.error("Failed to sync notes. Keeping them in the queue.", { id: 'sync' });
           }

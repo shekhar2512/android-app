@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import api from "../api";
 import toast from "react-hot-toast";
-import { ArrowLeft, Save, Camera, X } from "lucide-react";
+import { ArrowLeft, Save, Camera, X, Mic } from "lucide-react";
 import Navbar from "../components/Navbar";
 
 const NoteDetailsPage = () => {
@@ -10,6 +10,8 @@ const NoteDetailsPage = () => {
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [interimText, setInterimText] = useState("");
+  const [isListening, setIsListening] = useState(false);
   const [createdBy, setCreatedBy] = useState("");
   const [image, setImage] = useState(""); // NEW: Image state
   const [loading, setLoading] = useState(true);
@@ -36,6 +38,64 @@ const NoteDetailsPage = () => {
 
     fetchNote();
   }, [id, navigate]);
+
+  // 🎙️ NATIVE SPEECH-TO-TEXT ENGINE
+  const toggleListening = () => {
+    if (isListening) {
+      setIsListening(false);
+      window.speechRecognitionInstance?.stop();
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error("Your browser does not support Voice Typing!");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true; 
+    recognition.interimResults = true;
+    window.speechRecognitionInstance = recognition;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      toast.success("Microphone active! Start speaking...");
+    };
+
+    recognition.onresult = (event) => {
+      let finalTranscript = '';
+      let liveGuess = '';
+
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript + ' ';
+        } else {
+          liveGuess += event.results[i][0].transcript;
+        }
+      }
+      
+      setInterimText(liveGuess);
+
+      if (finalTranscript) {
+        setContent((prev) => prev + finalTranscript);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech error", event.error);
+      setIsListening(false);
+      setInterimText("");
+      if (event.error === 'not-allowed') toast.error("Please allow Microphone access!");
+    };
+
+    recognition.onend = () => {
+      setIsListening(false); 
+      setInterimText(""); 
+    };
+
+    recognition.start();
+  };
 
   // NEW: Function to process the camera photo
   const handleImageUpload = (e) => {
@@ -130,17 +190,33 @@ const NoteDetailsPage = () => {
                   />
                 </div>
 
-                <div className="form-control w-full">
+                <div className="form-control w-full mb-4">
                   <label className="label">
                     <span className="label-text font-semibold text-base-content/75">Content</span>
                   </label>
-                  <textarea
-                    placeholder="Write your note contents here..."
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    className="textarea textarea-bordered h-64 focus:outline-none focus:border-primary leading-relaxed text-base-content"
-                    required
-                  />
+                  
+                  <div className="relative w-full">
+                    <textarea
+                      placeholder="Write your note contents here..."
+                      value={content + interimText}
+                      onChange={(e) => setContent(e.target.value)}
+                      className="textarea textarea-bordered w-full h-64 pr-14 focus:outline-none focus:border-primary leading-relaxed text-base-content bg-base-200/50 focus:bg-base-100 shadow-inner"
+                      required
+                    />
+
+                    <button
+                      type="button"
+                      onClick={toggleListening}
+                      className={`absolute bottom-4 right-4 p-2.5 rounded-full transition-all duration-300 ${
+                        isListening 
+                          ? "bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/40" 
+                          : "bg-base-300 text-base-content/60 hover:bg-primary/20 hover:text-primary backdrop-blur-sm"
+                      }`}
+                      title="Voice Type"
+                    >
+                      <Mic className="size-5" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="form-control w-full">
@@ -159,18 +235,29 @@ const NoteDetailsPage = () => {
                 </div>
 
                 {/* NEW: Camera Input Section for Editing */}
-                <div className="form-control w-full border-t border-base-content/10 pt-4 mt-2">
+                <div className="form-control w-full mt-2">
                   <label className="label">
                     <span className="label-text font-semibold text-base-content/75">Change Photo</span>
                   </label>
                   
+                  {/* 1. We completely HIDE the ugly default browser input */}
                   <input
                     type="file"
+                    id="cameraInputEdit"
                     accept="image/*"
                     capture="environment"
                     onChange={handleImageUpload}
-                    className="file-input file-input-bordered w-full text-base-content"
+                    className="hidden"
                   />
+
+                  {/* 2. Label styled EXACTLY like the input fields for UI consistency */}
+                  <label 
+                    htmlFor="cameraInputEdit" 
+                    className="flex items-center justify-center gap-2 w-full input input-bordered hover:border-primary hover:text-primary cursor-pointer transition-all text-base-content/70"
+                  >
+                    <Camera className="size-5" />
+                    <span className="font-medium">Take a Photo</span>
+                  </label>
 
                   {image && (
                     <div className="mt-4 flex justify-end">

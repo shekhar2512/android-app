@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import api from "../api";
 import toast from "react-hot-toast";
-import { Edit2, Trash2, Calendar, FileText, Search, WifiOff } from "lucide-react";
+import { Edit2, Trash2, Calendar, FileText, Search, WifiOff,Share2} from "lucide-react";
 import Navbar from "../components/Navbar";
 import localforage from "localforage"; 
 
@@ -88,6 +88,46 @@ const Homepage = () => {
     } catch (error) {
       console.error("Error deleting note:", error);
       toast.error("Failed to delete note");
+    }
+  };
+
+     // UPGRADED Native PWA Web Share API
+  const handleShare = async (note) => {
+    let filesArray = [];
+    
+    // 1. If the note has an image, convert it into a physical File!
+    if (note.image && note.image.startsWith('data:image')) {
+      try {
+        const response = await fetch(note.image);
+        const blob = await response.blob();
+        const file = new File([blob], "thinkboard-photo.jpg", { type: "image/jpeg" });
+        
+        // Check if the user's phone supports sharing images
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          filesArray = [file];
+        }
+      } catch (err) {
+        console.error("Could not process image for sharing", err);
+      }
+    }
+
+    // 2. Beautifully format the text exactly how you requested
+    const shareText = `Check out my note!\n\n📝 Title: ${note.title}\n\n📖 Content: ${note.content}\n\n👤 Created by: ${note.createdBy}`;
+
+    // 3. Trigger the Native Share Sheet
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          text: shareText,
+          // If we successfully built the image file, attach it!
+          files: filesArray.length > 0 ? filesArray : undefined
+        });
+        console.log('Successfully shared!');
+      } catch (error) {
+        console.error('Error sharing:', error);
+      }
+    } else {
+      toast.error("Sharing is not supported on this device/browser.");
     }
   };
 
@@ -190,6 +230,8 @@ const Homepage = () => {
                   </div>
 
                   <div className="flex items-center gap-2">
+
+                    
                     <Link
                       to={`/notes/${note._id}`}
                       className={`btn btn-sm btn-ghost btn-circle text-base-content/70 hover:text-primary hover:bg-primary/10 transition-colors ${note._id.startsWith('offline-') ? 'btn-disabled opacity-50' : ''}`}
@@ -204,6 +246,17 @@ const Homepage = () => {
                     >
                       <Trash2 className="size-4" />
                     </button>
+
+                  {/* 3. NEW SHARE BUTTON HERE */}
+                    <button
+                      onClick={() => handleShare(note)}
+                      className="btn btn-sm btn-ghost btn-circle text-base-content/70 hover:text-blue-500 hover:bg-blue-500/10 transition-colors"
+                      title="Share Note"
+                    >
+                      <Share2 className="size-4" />
+                    </button>
+                    
+
                   </div>
                 </div>
               </div>

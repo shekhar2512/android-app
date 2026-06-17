@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
 import localforage from 'localforage';
 import api from './api';
+import OfflineBanner from './components/OfflineBanner';
 
 import Homepage from './pages/Homepage';
 import CreatePage from './pages/createpage';
@@ -82,7 +83,8 @@ const App = () => {
   }, []);
 
   return (
-    <div data-theme="halloween" className="min-h-screen bg-base-100 text-base-content">
+    <div className="min-h-screen bg-base-100 text-base-content">
+      <OfflineBanner />
       <Routes>
         <Route path="/" element={<Homepage />} />
         <Route path="/create" element={<CreatePage />} />

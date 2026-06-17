@@ -2,17 +2,13 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../api";
 import toast from "react-hot-toast";
-import { ArrowLeft, Save, Camera, X, Mic } from "lucide-react";
+import { ArrowLeft, Save, Camera, X } from "lucide-react";
 import Navbar from "../components/Navbar";
 import localforage from "localforage";
 
 const CreatePage = () => {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  // NEW: State to track the live guesses
-  const [interimText, setInterimText] = useState("");
-  
-  const [isListening, setIsListening] = useState(false);
   const [createdBy, setCreatedBy] = useState("");
   const [image, setImage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,67 +43,6 @@ const CreatePage = () => {
       img.src = reader.result;
     };
     reader.readAsDataURL(file);
-  };
-
-  // 🎙️ NATIVE SPEECH-TO-TEXT ENGINE
-  const toggleListening = () => {
-    if (isListening) {
-      setIsListening(false);
-      window.speechRecognitionInstance?.stop();
-      return;
-    }
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      toast.error("Your browser does not support Voice Typing!");
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true; 
-    recognition.interimResults = true;
-    window.speechRecognitionInstance = recognition;
-
-    recognition.onstart = () => {
-      setIsListening(true);
-      toast.success("Microphone active! Start speaking...");
-    };
-
-    // UPGRADED: Real-time translation parsing
-    recognition.onresult = (event) => {
-      let finalTranscript = '';
-      let liveGuess = '';
-
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript + ' ';
-        } else {
-          liveGuess += event.results[i][0].transcript;
-        }
-      }
-      
-      // Update the live guesses instantly
-      setInterimText(liveGuess);
-
-      // Save the finalized sentences permanently
-      if (finalTranscript) {
-        setContent((prev) => prev + finalTranscript);
-      }
-    };
-
-    recognition.onerror = (event) => {
-      console.error("Speech error", event.error);
-      setIsListening(false);
-      setInterimText("");
-      if (event.error === 'not-allowed') toast.error("Please allow Microphone access!");
-    };
-
-    recognition.onend = () => {
-      setIsListening(false); 
-      setInterimText(""); // Clear any leftover live guesses when stopping
-    };
-
-    recognition.start();
   };
 
   const handleSubmit = async (e) => {
@@ -195,29 +130,13 @@ const CreatePage = () => {
                   <span className="label-text font-semibold text-base-content/75">Content</span>
                 </label>
                 
-                <div className="relative w-full">
                   <textarea
                     placeholder="Write your note contents here..."
-                    // UPGRADED: Combines permanent text + live guesses!
-                    value={content + interimText}
+                    value={content}
                     onChange={(e) => setContent(e.target.value)}
-                    className="textarea textarea-bordered w-full h-64 pr-14 focus:outline-none focus:border-primary leading-relaxed text-base-content bg-base-200/50 focus:bg-base-100 shadow-inner"
+                    className="textarea textarea-bordered w-full h-64 focus:outline-none focus:border-primary leading-relaxed text-base-content"
                     required
                   />
-
-                  <button
-                    type="button"
-                    onClick={toggleListening}
-                    className={`absolute bottom-4 right-4 p-2.5 rounded-full transition-all duration-300 ${
-                      isListening 
-                        ? "bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/40" 
-                        : "bg-base-300 text-base-content/60 hover:bg-primary/20 hover:text-primary backdrop-blur-sm"
-                    }`}
-                    title="Voice Type"
-                  >
-                    <Mic className="size-5" />
-                  </button>
-                </div>
               </div>
 
               <div className="form-control w-full">
